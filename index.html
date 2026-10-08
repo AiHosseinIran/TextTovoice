@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎙️ تبدیل متن به صدا</title>
+    <style>
+        * { box-sizing: border-box; font-family: Tahoma, sans-serif; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 650px;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin: 0 0 25px;
+            font-size: 26px;
+        }
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            font-size: 16px;
+            resize: vertical;
+            font-family: Tahoma, sans-serif;
+        }
+        textarea:focus { outline: none; border-color: #667eea; }
+        .options {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 12px;
+            margin-top: 15px;
+        }
+        @media (max-width: 550px) {
+            .options { grid-template-columns: 1fr; }
+        }
+        .option-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .option-group label {
+            font-size: 13px;
+            color: #666;
+            font-weight: bold;
+        }
+        select {
+            padding: 12px;
+            border-radius: 10px;
+            border: 2px solid #ddd;
+            font-size: 14px;
+            font-family: Tahoma, sans-serif;
+            cursor: pointer;
+            background: #fff;
+        }
+        select:focus { outline: none; border-color: #667eea; }
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            flex: 1;
+            min-width: 140px;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-family: Tahoma, sans-serif;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102,126,234,0.4);
+        }
+        .btn-primary:hover:not(:disabled) { opacity: 0.9; }
+        .btn-green {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            color: white;
+            box-shadow: 0 4px 15px rgba(17,153,142,0.4);
+        }
+        .btn-green:hover:not(:disabled) { opacity: 0.9; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+        .player-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9ff;
+            border-radius: 12px;
+            border: 2px solid #e6e9ff;
+            display: none;
+        }
+        .player-box.show { display: block; }
+        audio { width: 100%; border-radius: 10px; }
+        .player-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 13px;
+            color: #667eea;
+            font-weight: bold;
+        }
+        .message {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 14px;
+            min-height: 22px;
+            font-weight: bold;
+        }
+        .error { color: #e74c3c; }
+        .success { color: #27ae60; }
+        .loading { color: #667eea; }
+        .spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid #667eea;
+            border-top-color: transparent;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            vertical-align: middle;
+            margin-left: 6px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .char-count {
+            text-align: left;
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 25px;
+            color: #999;
+            font-size: 12px;
+            padding-top: 15px;
+            border-top: 1px solid #eee;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎙️ تبدیل متن به صدا</h1>
+
+        <textarea id="text" placeholder="متن خود را اینجا بنویسید..." maxlength="10000"></textarea>
+        <div class="char-count"><span id="charCount">0</span> / 10000 کاراکتر</div>
+
+        <div class="options">
+            <div class="option-group">
+                <label>🌍 زبان</label>
+                <select id="lang" onchange="updateVoices()"></select>
+            </div>
+            <div class="option-group">
+                <label>👤 صدای گوینده</label>
+                <select id="voice"></select>
+            </div>
+            <div class="option-group">
+                <label>⚡ سرعت</label>
+                <select id="speed">
+                    <option value="normal">عادی</option>
+                    <option value="slow">🐢 آهسته</option>
+                    <option value="fast">🐇 سریع</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="buttons">
+            <button id="convertBtn" class="btn-primary" onclick="convert()">
+                🔄 تبدیل به صدا
+            </button>
+            <button id="downloadBtn" class="btn-green" onclick="download()" disabled>
+                ⬇️ دانلود فایل
+            </button>
+        </div>
+
+        <div id="message" class="message"></div>
+
+        <div id="playerBox" class="player-box">
+            <div class="player-info">
+                <span>🔊 پیش‌نمایش:</span>
+                <span id="fileInfo"></span>
+            </div>
+            <audio id="player" controls></audio>
+        </div>
+
+        <div class="footer">ساخته شده با Python + Flask + Edge-TTS</div>
+    </div>
+
+    <script>
+        var TTS_VOICES = __TTS_VOICES__;
+        var LANG_NAMES = __LANG_NAMES__;
+
+        var currentAudioBlob = null;
+        var currentFileName = '';
+
+        var textArea = document.getElementById('text');
+        var charCount = document.getElementById('charCount');
+        textArea.addEventListener('input', function() {
+            charCount.textContent = textArea.value.length;
+        });
+
+        var langSelect = document.getElementById('lang');
+        for (var code in TTS_VOICES) {
+            var opt = document.createElement('option');
+            opt.value = code;
+            opt.textContent = LANG_NAMES[code] || code;
+            langSelect.appendChild(opt);
+        }
+
+        function updateVoices() {
+            var lang = langSelect.value;
+            var voiceSelect = document.getElementById('voice');
+            voiceSelect.innerHTML = '';
+            if (TTS_VOICES[lang]) {
+                TTS_VOICES[lang].forEach(function(v) {
+                    var opt = document.createElement('option');
+                    opt.value = v.value;
+                    opt.textContent = v.label;
+                    voiceSelect.appendChild(opt);
+                });
+            }
+        }
+        updateVoices();
+
+        async function convert() {
+            var text = textArea.value.trim();
+            var voice = document.getElementById('voice').value;
+            var speed = document.getElementById('speed').value;
+            var btn = document.getElementById('convertBtn');
+            var dlBtn = document.getElementById('downloadBtn');
+            var msg = document.getElementById('message');
+            var player = document.getElementById('player');
+            var playerBox = document.getElementById('playerBox');
+
+            if (!text) {
+                msg.innerHTML = '<span class="error">⚠️ لطفا متن را وارد کنید</span>';
+                return;
+            }
+
+            btn.disabled = true;
+            dlBtn.disabled = true;
+            msg.innerHTML = '<span class="loading">در حال تبدیل<span class="spinner"></span></span>';
+            playerBox.classList.remove('show');
+
+            try {
+                var response = await fetch('/tts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text, voice: voice, speed: speed })
+                });
+
+                if (!response.ok) {
+                    var err = await response.json();
+                    throw new Error(err.error || 'خطا در تبدیل');
+                }
+
+                var blob = await response.blob();
+                currentAudioBlob = blob;
+                currentFileName = 'speech_' + Date.now() + '.mp3';
+
+                player.src = URL.createObjectURL(blob);
+                playerBox.classList.add('show');
+                player.play();
+
+                document.getElementById('fileInfo').textContent =
+                    (blob.size / 1024).toFixed(1) + ' KB';
+
+                msg.innerHTML = '<span class="success">✅ فایل صوتی آماده شد!</span>';
+                dlBtn.disabled = false;
+            } catch (e) {
+                msg.innerHTML = '<span class="error">❌ ' + e.message + '</span>';
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function download() {
+            if (!currentAudioBlob) return;
+            var url = URL.createObjectURL(currentAudioBlob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = currentFileName;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            var msg = document.getElementById('message');
+            msg.innerHTML = '<span class="success">⬇️ فایل دانلود شد!</span>';
+            setTimeout(function() {
+                msg.innerHTML = '<span class="success">✅ فایل صوتی آماده شد!</span>';
+            }, 2000);
+        }
+
+        textArea.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') convert();
+        });
+    </script>
+</body>
+</html>
